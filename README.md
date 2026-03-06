@@ -1,12 +1,21 @@
-# OpenClaw Custom Helm Chart
+# OpenClaw Helm Chart
 
-Minimal Helm chart for OpenClaw without Chromium.
+A slim Helm chart for OpenClaw designed without Chromium browser integration. This chart focuses on minimal resource usage while maintaining full OpenClaw functionality for text-based interactions.
 
 ## Install
 
 ```bash
-helm upgrade --install openclaw-custom . --namespace default
+helm install openclaw oci://ghcr.io/thepagent/openclaw-helm --version 1.0.1
 ```
+
+## Design Philosophy
+
+This chart is intentionally slim and excludes the Chromium browser sidecar container to:
+- Reduce memory and CPU usage
+- Simplify deployment in resource-constrained environments
+- Focus on text-based AI agent capabilities
+
+If you need browser automation features, consider the official OpenClaw chart or enable browser support by modifying `config.browser.enabled` in values.yaml.
 
 ## Uninstall
 
