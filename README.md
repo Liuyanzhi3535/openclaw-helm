@@ -10,12 +10,13 @@ helm install openclaw oci://ghcr.io/thepagent/openclaw-helm
 
 ## Design Philosophy
 
-This chart is intentionally slim and excludes the Chromium browser sidecar container to:
-- Reduce memory and CPU usage
-- Simplify deployment in resource-constrained environments
-- Focus on text-based AI agent capabilities
+This chart is designed with three core principles:
 
-If you need browser automation features, consider the official OpenClaw chart or enable browser support by modifying `config.browser.enabled` in values.yaml.
+1. **Minimal Resource Footprint** - Optimized to run on small cloud instances (2 vCPU, 2GB RAM). Tested on Zeabur and similar constrained environments.
+
+2. **Decoupled Browser Architecture** - We exclude the Chromium sidecar container. Browser capabilities should be decoupled from the gateway. For browser automation, we recommend using [agent-browser](https://github.com/aws-samples/agent-browser) with Amazon Bedrock AgentCore Browser Tool.
+
+3. **Security by Design** - The gateway binds to loopback (127.0.0.1) even in Kubernetes environments. This ensures the gateway is only accessible through Kubernetes Service boundaries, not directly exposed on all network interfaces.
 
 ## Uninstall
 
