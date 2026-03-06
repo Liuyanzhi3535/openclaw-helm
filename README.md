@@ -18,12 +18,6 @@ This chart is designed with three core principles:
 
 3. **Security by Design** - The gateway binds to loopback (127.0.0.1) even in Kubernetes environments. This ensures the gateway is only accessible through Kubernetes Service boundaries, not directly exposed on all network interfaces.
 
-## Uninstall
-
-```bash
-helm uninstall openclaw
-```
-
 ## Post-Installation Setup
 
 After installing the chart, run the OpenClaw onboarding wizard to configure your AI provider:
@@ -69,6 +63,12 @@ helm upgrade openclaw oci://ghcr.io/thepagent/openclaw-helm -f values.yaml
 ```bash
 POD=$(kubectl get pod -l app.kubernetes.io/name=openclaw-helm -o jsonpath='{.items[0].metadata.name}')
 kubectl exec $POD -- openclaw models status
+```
+
+## Uninstall
+
+```bash
+helm uninstall openclaw
 ```
 
 ## Example: Add more skills
