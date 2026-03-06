@@ -1,63 +1,138 @@
-name: Check Upstream OpenClaw Release
+name: Bump OpenClaw Version
 
 on:
   schedule:
-    - cron: '0 */6 * * *'  # Every 6 hours
-  workflow_dispatch:  # Manual trigger
+    - cron: '0 6 * * *'  # Daily at 6 AM UTC
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'OpenClaw version (e.g., 2026.3.2). Leave empty to fetch latest.'
+        required: false
+        type: string
+      chart_bump:
+        description: 'Chart version bump type'
+        required: true
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+        default: patch
+      dry_run:
+        description: 'Dry run (show changes without committing)'
+        required: false
+        type: boolean
+        default: false
 
 jobs:
-  check-upstream:
+  bump:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
     steps:
       - uses: actions/checkout@v4
       
       - name: Get latest OpenClaw version
-        id: upstream
+        id: get-version
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          LATEST=$(curl -s https://api.github.com/repos/openclaw/openclaw/releases/latest | jq -r .tag_name)
-          echo "version=$LATEST" >> $GITHUB_OUTPUT
+          if [ -n "${{ inputs.version }}" ]; then
+            version="${{ inputs.version }}"
+          else
+            version=$(gh api repos/openclaw/openclaw/releases/latest --jq '.tag_name' | sed 's/^v//')
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "OpenClaw version: $version"
           
-      - name: Get current chart version
+      - name: Get current versions
         id: current
         run: |
-          CURRENT=$(grep 'appVersion:' Chart.yaml | awk '{print $2}' | tr -d '"')
-          echo "version=$CURRENT" >> $GITHUB_OUTPUT
+          chart_version=$(grep '^version:' Chart.yaml | awk '{print $2}')
+          app_version=$(grep '^appVersion:' Chart.yaml | awk '{print $2}' | tr -d '"')
+          echo "chart_version=$chart_version" >> "$GITHUB_OUTPUT"
+          echo "app_version=$app_version" >> "$GITHUB_OUTPUT"
+          echo "Current chart: $chart_version, app: $app_version"
           
       - name: Check if update needed
         id: check
         run: |
-          if [ "${{ steps.upstream.version }}" != "${{ steps.current.version }}" ]; then
-            echo "update=true" >> $GITHUB_OUTPUT
-            echo "New version available: ${{ steps.upstream.version }}"
+          if [ "${{ steps.get-version.outputs.version }}" != "${{ steps.current.outputs.app_version }}" ]; then
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+            echo "OpenClaw version changed"
           else
-            echo "update=false" >> $GITHUB_OUTPUT
-            echo "Already up to date"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "Already on latest version"
           fi
           
-      - name: Bump chart version
-        if: steps.check.outputs.update == 'true'
+      - name: Calculate new chart version
+        if: steps.check.outputs.skip != 'true'
+        id: new-version
         run: |
-          # Update appVersion
-          sed -i "s/appVersion: .*/appVersion: \"${{ steps.upstream.version }}\"/" Chart.yaml
+          current="${{ steps.current.outputs.chart_version }}"
+          IFS='.' read -r major minor patch <<< "$current"
+          bump_type="${{ inputs.chart_bump }}"
+          bump_type="${bump_type:-patch}"
           
-          # Bump chart version (minor)
-          CHART_VERSION=$(grep '^version:' Chart.yaml | awk '{print $2}')
-          NEW_VERSION=$(echo $CHART_VERSION | awk -F. '{$2+=1; $3=0} 1' OFS=.)
-          sed -i "s/^version: .*/version: $NEW_VERSION/" Chart.yaml
+          case "$bump_type" in
+            major) major=$((major + 1)); minor=0; patch=0 ;;
+            minor) minor=$((minor + 1)); patch=0 ;;
+            patch) patch=$((patch + 1)) ;;
+          esac
           
-      - name: Create Pull Request
-        if: steps.check.outputs.update == 'true'
-        uses: peter-evans/create-pull-request@v6
+          new_version="${major}.${minor}.${patch}"
+          echo "new_version=$new_version" >> "$GITHUB_OUTPUT"
+          echo "New chart version: $new_version"
+          
+      - name: Update Chart.yaml
+        if: steps.check.outputs.skip != 'true'
+        run: |
+          sed -i "s/^version: .*/version: ${{ steps.new-version.outputs.new_version }}/" Chart.yaml
+          sed -i "s/^appVersion: .*/appVersion: \"${{ steps.get-version.outputs.version }}\"/" Chart.yaml
+          
+      - name: Update values.yaml
+        if: steps.check.outputs.skip != 'true'
+        run: |
+          old_version="${{ steps.current.outputs.app_version }}"
+          new_version="${{ steps.get-version.outputs.version }}"
+          sed -i "s/tag: \"${old_version}\"/tag: \"${new_version}\"/" values.yaml
+          
+      - name: Show changes
+        if: steps.check.outputs.skip != 'true'
+        run: git diff
+        
+      - name: Commit and push
+        if: steps.check.outputs.skip != 'true' && inputs.dry_run != true
+        run: |
+          git config user.name "thepagent"
+          git config user.email "thepagent@users.noreply.github.com"
+          git add Chart.yaml values.yaml
+          git commit -m "chore: bump OpenClaw to ${{ steps.get-version.outputs.version }}"
+          git push
+          
+      - name: Set up Helm
+        if: steps.check.outputs.skip != 'true' && inputs.dry_run != true
+        uses: azure/setup-helm@v4
+        
+      - name: Login to GHCR
+        if: steps.check.outputs.skip != 'true' && inputs.dry_run != true
+        uses: docker/login-action@v3
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: "chore: bump OpenClaw to ${{ steps.upstream.version }}"
-          title: "Update OpenClaw to ${{ steps.upstream.version }}"
-          body: |
-            Automated update from upstream OpenClaw release.
-            
-            - Upstream version: ${{ steps.upstream.version }}
-            - Current version: ${{ steps.current.version }}
-            
-            Please review and merge if tests pass.
-          branch: update-openclaw-${{ steps.upstream.version }}
-          author: thepagent <thepagent@users.noreply.github.com>
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: Package and push chart
+        if: steps.check.outputs.skip != 'true' && inputs.dry_run != true
+        run: |
+          helm package .
+          helm push openclaw-helm-${{ steps.new-version.outputs.new_version }}.tgz oci://ghcr.io/${{ github.repository_owner }}
+          
+      - name: Dry run summary
+        if: steps.check.outputs.skip != 'true' && inputs.dry_run == true
+        run: |
+          echo "::notice::Dry run - no changes committed"
+          echo "Would bump OpenClaw to ${{ steps.get-version.outputs.version }}"
+          echo "Would bump chart to ${{ steps.new-version.outputs.new_version }}"
+
