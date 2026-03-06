@@ -74,3 +74,13 @@ skills:
   - gog
 
 env: {}
+  # EXAMPLE_VAR: "value"
+
+# envFrom allows injecting environment variables from Secrets or ConfigMaps
+# Example:
+# envFrom:
+#   - secretRef:
+#       name: openclaw-api-keys
+#   - configMapRef:
+#       name: openclaw-config
+envFrom: []
