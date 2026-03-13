@@ -72,18 +72,23 @@ jobs:
         if: steps.check.outputs.skip != 'true'
         id: new-version
         run: |
-          current="${{ steps.current.outputs.chart_version }}"
-          IFS='.' read -r major minor patch <<< "$current"
-          bump_type="${{ inputs.chart_bump }}"
-          bump_type="${bump_type:-patch}"
-          case "$bump_type" in
-            major) major=$((major + 1)); minor=0; patch=0 ;;
-            minor) minor=$((minor + 1)); patch=0 ;;
-            patch) patch=$((patch + 1)) ;;
-          esac
-          new_version="${major}.${minor}.${patch}"
-          echo "new_version=$new_version" >> "$GITHUB_OUTPUT"
-          echo "New chart version: $new_version"
+          if [ "${{ inputs.force }}" = "true" ]; then
+            echo "new_version=${{ steps.current.outputs.chart_version }}" >> "$GITHUB_OUTPUT"
+            echo "Force mode: reusing existing chart version ${{ steps.current.outputs.chart_version }}"
+          else
+            current="${{ steps.current.outputs.chart_version }}"
+            IFS='.' read -r major minor patch <<< "$current"
+            bump_type="${{ inputs.chart_bump }}"
+            bump_type="${bump_type:-patch}"
+            case "$bump_type" in
+              major) major=$((major + 1)); minor=0; patch=0 ;;
+              minor) minor=$((minor + 1)); patch=0 ;;
+              patch) patch=$((patch + 1)) ;;
+            esac
+            new_version="${major}.${minor}.${patch}"
+            echo "new_version=$new_version" >> "$GITHUB_OUTPUT"
+            echo "New chart version: $new_version"
+          fi
       - name: Update Chart.yaml
         if: steps.check.outputs.skip != 'true'
         run: |
