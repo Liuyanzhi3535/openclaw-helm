@@ -115,22 +115,7 @@ jobs:
           git commit -m "chore: bump OpenClaw to ${{ steps.get-version.outputs.version }}"
           git tag "v${{ steps.new-version.outputs.new_version }}"
           git push && git push --tags
-      - name: Set up Helm
-        if: steps.check.outputs.skip != 'true' && inputs.dry_run != true
-        uses: azure/setup-helm@v4
-      - name: Login to GHCR
-        if: steps.check.outputs.skip != 'true' && inputs.dry_run != true
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Package and push chart
-        if: steps.check.outputs.skip != 'true' && inputs.dry_run != true
-        run: |
-          helm package charts/openclaw-helm
-          helm push openclaw-helm-${{ steps.new-version.outputs.new_version }}.tgz oci://ghcr.io/${{ github.repository_owner }}
-      # GitHub Release is now handled by chart-releaser in release.yml
+      # Packaging, OCI push, GitHub Release, and gh-pages index are all handled by release.yml
       - name: Dry run summary
         if: steps.check.outputs.skip != 'true' && inputs.dry_run == true
         run: |
