@@ -4,9 +4,9 @@ When OpenClaw runs as a Helm chart in a Kubernetes environment, it runs inside a
 
 ## The Golden Rule
 
-> Install all CLI tools and binaries under `$WORKSPACE/bin/`, not system paths.
+> Install all CLI tools and binaries under `~/.openclaw/workspace/bin/`, not system paths.
 
-`$WORKSPACE` defaults to `/home/node/.openclaw/workspace`.
+`~/.openclaw/workspace` is the default agent workspace directory. It is **not** exposed as a `$WORKSPACE` environment variable — use the full path explicitly.
 
 ## Why
 
@@ -16,33 +16,28 @@ When OpenClaw runs as a Helm chart in a Kubernetes environment, it runs inside a
 
 ## Installing Tools
 
-Instead of `apt install`, ask OpenClaw to **download the official binary directly into `$WORKSPACE/bin/`**.
+Instead of `apt install`, ask OpenClaw to **download the official binary directly into `~/.openclaw/workspace/bin/`**.
 
 Examples:
 
 ```
-# GitHub CLI
-$WORKSPACE/bin/gh
-
-# Cloudflare Wrangler
-$WORKSPACE/bin/wrangler
-
-# Weather CLI
-$WORKSPACE/bin/weather
+~/.openclaw/workspace/bin/gh        # GitHub CLI
+~/.openclaw/workspace/bin/wrangler  # Cloudflare CLI
+~/.openclaw/workspace/bin/weather   # Weather CLI
 ```
 
 ### Example prompt to OpenClaw
 
-> Download the latest GitHub CLI Linux amd64 binary and install it to `$WORKSPACE/bin/gh`
+> Download the latest GitHub CLI Linux amd64 binary and install it to `~/.openclaw/workspace/bin/gh`
 
 OpenClaw will fetch the release tarball, extract the binary, and place it at the correct path.
 
 ## Using Installed Tools
 
-Ensure `$WORKSPACE/bin` is on `PATH` before running:
+Ensure `~/.openclaw/workspace/bin` is on `PATH` before running:
 
 ```bash
-export PATH=$WORKSPACE/bin:$PATH
+export PATH=~/.openclaw/workspace/bin:$PATH
 gh --version
 ```
 
@@ -53,8 +48,8 @@ You can also ask OpenClaw to prepend this in any command it runs, or add it to a
 For npm-based CLIs, install to the workspace as well:
 
 ```bash
-npm install -g --prefix $WORKSPACE <package>
-# binary lands at $WORKSPACE/bin/<package>
+npm install -g --prefix ~/.openclaw/workspace <package>
+# binary lands at ~/.openclaw/workspace/bin/<package>
 ```
 
 ## Summary
@@ -62,7 +57,7 @@ npm install -g --prefix $WORKSPACE <package>
 | ✅ Persisted | ❌ Not Persisted |
 |---|---|
 | `~/.openclaw/**` | `/usr/local/bin/` |
-| `$WORKSPACE/bin/` | `/usr/bin/` |
-| `$WORKSPACE/node_modules/` | System packages (`apt`) |
+| `~/.openclaw/workspace/bin/` | `/usr/bin/` |
+| `~/.openclaw/workspace/node_modules/` | System packages (`apt`) |
 
 As long as binaries live under `~/.openclaw`, they survive Pod restarts and Helm upgrades.
