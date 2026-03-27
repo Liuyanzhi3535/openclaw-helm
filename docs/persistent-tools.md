@@ -2,6 +2,23 @@
 
 When OpenClaw runs as a Helm chart in a Kubernetes environment, it runs inside a Pod where **only `~/.openclaw` is persisted** to a PVC. Everything else is ephemeral and lost on Pod restart or upgrade.
 
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Kubernetes Pod                           │
+│                                                             │
+│  ┌─────────────────────┐   ┌─────────────────────────────┐ │
+│  │   Ephemeral Layer   │   │   ~/.openclaw/ (PVC)        │ │
+│  │                     │   │                             │ │
+│  │  /usr/local/bin/  ✗ │   │  workspace/bin/gh       ✓  │ │
+│  │  /usr/bin/        ✗ │   │  workspace/bin/wrangler ✓  │ │
+│  │  apt packages     ✗ │   │  workspace/bin/weather  ✓  │ │
+│  │                     │   │  workspace/node_modules ✓  │ │
+│  │  Lost on restart    │   │                             │ │
+│  └─────────────────────┘   │  Survives restart/upgrade   │ │
+│                             └─────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────┘
+```
+
 ## The Golden Rule
 
 > Install all CLI tools and binaries under `~/.openclaw/workspace/bin/`, not system paths.
