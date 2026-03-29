@@ -155,7 +155,11 @@ spec:
         - name: bash-aliases
           mountPath: /home/node/.bash_aliases
           subPath: bash_aliases
-      
+
+      {{- with .Values.extraContainers }}
+      {{- toYaml . | nindent 6 }}
+      {{- end }}
+
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

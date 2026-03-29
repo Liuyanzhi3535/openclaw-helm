@@ -106,3 +106,21 @@ tolerations: []
 
 # affinity defines advanced node/pod scheduling rules
 affinity: {}
+
+# extraContainers adds sidecar containers to the pod.
+# Example:
+# extraContainers:
+#   - name: skill-executor
+#     image: ghcr.io/你/openclaw-skills:latest
+#     imagePullPolicy: Always
+#     livenessProbe:
+#       httpGet:
+#         path: /healthz
+#         port: 8080
+#         host: 127.0.0.1
+#       periodSeconds: 30
+#     volumeMounts:
+#       - name: data
+#         mountPath: /credentials
+#         subPath: credentials
+extraContainers: []
