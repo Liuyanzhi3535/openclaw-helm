@@ -31,7 +31,8 @@ jobs:
       - name: Push chart to OCI registry
         run: |
           VERSION=$(grep '^version:' charts/openclaw-helm/Chart.yaml | awk '{print $2}')
+          OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
           echo "Pushing chart version: ${VERSION}"
           helm package charts/openclaw-helm
-          helm push openclaw-helm-${VERSION}.tgz oci://ghcr.io/${{ github.repository_owner }}
-          echo "Done: ghcr.io/${{ github.repository_owner }}/openclaw-helm:${VERSION}"
+          helm push openclaw-helm-${VERSION}.tgz oci://ghcr.io/${OWNER}
+          echo "Done: ghcr.io/${OWNER}/openclaw-helm:${VERSION}"
