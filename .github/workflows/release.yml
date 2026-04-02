@@ -1,5 +1,4 @@
 name: Release Charts
-
 on:
   workflow_dispatch:
   push:
@@ -7,24 +6,17 @@ on:
       - main
     paths:
       - "charts/openclaw-helm/Chart.yaml"
+      - "charts/openclaw-helm/values.yaml"
 
 jobs:
   release:
     runs-on: ubuntu-latest
     permissions:
-      contents: write
-      pages: write
+      contents: read
       packages: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Configure Git
-        run: |
-          git config user.name "$GITHUB_ACTOR"
-          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
 
       - name: Install Helm
         uses: azure/setup-helm@v4
@@ -36,62 +28,10 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Run chart-releaser
-        uses: helm/chart-releaser-action@v1.6.0
-        with:
-          skip_existing: true
-        env:
-          CR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Push chart to OCI registry
         run: |
           VERSION=$(grep '^version:' charts/openclaw-helm/Chart.yaml | awk '{print $2}')
+          echo "Pushing chart version: ${VERSION}"
           helm package charts/openclaw-helm
           helm push openclaw-helm-${VERSION}.tgz oci://ghcr.io/${{ github.repository_owner }}
-
-      - name: Append OCI install instructions to release notes
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          OWNER="${{ github.repository_owner }}"
-          REPO="${{ github.event.repository.name }}"
-          VERSION=$(grep '^version:' charts/openclaw-helm/Chart.yaml | awk '{print $2}')
-          APP_VERSION=$(grep '^appVersion:' charts/openclaw-helm/Chart.yaml | awk '{print $2}' | tr -d '"')
-          NAME=$(grep '^name:' charts/openclaw-helm/Chart.yaml | awk '{print $2}')
-          TAG="${NAME}-${VERSION}"
-
-          # Skip if release was not created (skip_existing)
-          if ! gh release view "${TAG}" --repo "${OWNER}/${REPO}" > /dev/null 2>&1; then
-            echo "Release ${TAG} not found, skipping notes update."
-            exit 0
-          fi
-
-          cat > /tmp/release-notes-append.md << EOF
-
-          ## Version Info
-          - Chart Version: ${VERSION}
-          - App Version: ${APP_VERSION}
-
-          ## Installation
-
-          ### Helm Repository (GitHub Pages)
-          \`\`\`bash
-          helm repo add openclaw https://${OWNER}.github.io/${REPO}
-          helm repo update
-          helm install openclaw openclaw/${REPO} --version ${VERSION}
-          \`\`\`
-
-          ### OCI Registry
-          \`\`\`bash
-          helm pull oci://ghcr.io/${OWNER}/${REPO} --version ${VERSION}
-          helm install openclaw oci://ghcr.io/${OWNER}/${REPO} --version ${VERSION}
-          \`\`\`
-          EOF
-
-          EXISTING=$(gh release view "${TAG}" --repo "${OWNER}/${REPO}" --json body --jq '.body' 2>/dev/null || echo "")
-          printf '%s\n' "${EXISTING}" > /tmp/existing-notes.md
-          cat /tmp/existing-notes.md /tmp/release-notes-append.md > /tmp/final-notes.md
-
-          gh release edit "${TAG}" \
-            --repo "${OWNER}/${REPO}" \
-            --notes-file /tmp/final-notes.md
+          echo "Done: ghcr.io/${{ github.repository_owner }}/openclaw-helm:${VERSION}"
