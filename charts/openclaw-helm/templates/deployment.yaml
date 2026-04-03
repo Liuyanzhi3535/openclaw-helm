@@ -61,7 +61,7 @@ spec:
               {{- else }}
               name: {{ .Values.gateway.token.secretName }}
               {{- end }}
-              key: token
+              key: OPENCLAW_GATEWAY_TOKEN
               optional: true
         volumeMounts:
         - name: config
