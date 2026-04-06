@@ -43,7 +43,7 @@ jobs:
       - name: Get latest OpenClaw version
         id: get-version
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
           if [ -n "${{ inputs.version }}" ]; then
             version="${{ inputs.version }}"
@@ -118,6 +118,7 @@ jobs:
           git remote set-url origin https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}
           git add charts/openclaw-helm/Chart.yaml charts/openclaw-helm/values.yaml
           git commit -m "chore: bump OpenClaw to ${{ steps.get-version.outputs.version }}"
+          git pull --rebase origin main
           git push
       - name: Trigger release workflow
         if: steps.check.outputs.skip != 'true' && inputs.dry_run != true && inputs.force != true
