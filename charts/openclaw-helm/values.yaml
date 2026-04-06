@@ -88,6 +88,7 @@ sidecar:
   image: ghcr.io/liuyanzhi3535/openclaw-skills:latest
 
 gateway:
+  port: 8080          # port openclaw gateway listens on
   token:
     generate: true    # auto-generate gateway token Secret on install, retained on uninstall
     secretName: ""    # override secret name if generate=false
