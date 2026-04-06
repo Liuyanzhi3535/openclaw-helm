@@ -76,9 +76,8 @@ config:
       fetch:
         enabled: true
 
-skills:
-  - weather
-  - gog
+sidecar:
+  image: ghcr.io/liuyanzhi3535/openclaw-skills:latest
 
 gateway:
   token:
@@ -124,3 +123,13 @@ affinity: {}
 #         mountPath: /credentials
 #         subPath: credentials
 extraContainers: []
+
+# initContainers adds extra init containers to the pod (run before main containers).
+# Example:
+# initContainers:
+#   - name: install-skill-manifests
+#     image: ghcr.io/你/openclaw-skills:latest
+#     imagePullPolicy: Always
+#     command: [...]
+#     volumeMounts: [...]
+initContainers: []

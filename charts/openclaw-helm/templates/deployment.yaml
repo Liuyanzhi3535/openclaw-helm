@@ -58,18 +58,20 @@ spec:
           mountPath: /tmp
       
       - name: init-skills
-        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        image: "{{ .Values.sidecar.image }}"
+        imagePullPolicy: Always
         command:
         - sh
         - -c
         - |
           mkdir -p /home/node/.openclaw/workspace/skills
           cd /home/node/.openclaw/workspace
-          {{- range .Values.skills }}
-          if [ ! -d "skills/{{ . }}" ]; then
-            npx -y clawhub install "{{ . }}" --no-input || true
-          fi
-          {{- end }}
+          while IFS= read -r skill; do
+            [ -z "$skill" ] && continue
+            if [ ! -d "skills/$skill" ]; then
+              npx -y clawhub install "$skill" --no-input || echo "[WARN] Failed to install skill: $skill"
+            fi
+          done < /app/skills.txt
         env:
         - name: HOME
           value: /tmp
@@ -80,7 +82,11 @@ spec:
           mountPath: /home/node/.openclaw
         - name: tmp
           mountPath: /tmp
-      
+
+      {{- with .Values.initContainers }}
+      {{- toYaml . | nindent 6 }}
+      {{- end }}
+
       containers:
       - name: main
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
