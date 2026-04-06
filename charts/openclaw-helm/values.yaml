@@ -1,9 +1,17 @@
 image:
   repository: ghcr.io/openclaw/openclaw
-  tag: "2026.3.28"
+  tag: "2026.4.5"
+  digest: ""    # if set, overrides tag (e.g. sha256:abc123...)
   pullPolicy: IfNotPresent
 
 replicas: 1
+
+# strategy controls the deployment update strategy
+# Recreate is required for RWO PVC (default on most cloud providers) to avoid
+# Multi-Attach errors during helm upgrade. Override to RollingUpdate only if
+# your StorageClass supports RWX (ReadWriteMany).
+strategy:
+  type: Recreate
 
 resources:
   limits:
@@ -106,30 +114,19 @@ tolerations: []
 # affinity defines advanced node/pod scheduling rules
 affinity: {}
 
-# extraContainers adds sidecar containers to the pod.
-# Example:
-# extraContainers:
-#   - name: skill-executor
-#     image: ghcr.io/你/openclaw-skills:latest
-#     imagePullPolicy: Always
-#     livenessProbe:
-#       httpGet:
-#         path: /healthz
-#         port: 8080
-#         host: 127.0.0.1
-#       periodSeconds: 30
-#     volumeMounts:
-#       - name: data
-#         mountPath: /credentials
-#         subPath: credentials
+# podSecurityContext sets pod-level security attributes (e.g. fsGroup for volume permissions)
+podSecurityContext: {}
+# podSecurityContext:
+#   fsGroup: 1000
+
+# extraContainers adds sidecar containers to the pod
 extraContainers: []
 
-# initContainers adds extra init containers to the pod (run before main containers).
-# Example:
-# initContainers:
-#   - name: install-skill-manifests
-#     image: ghcr.io/你/openclaw-skills:latest
-#     imagePullPolicy: Always
-#     command: [...]
-#     volumeMounts: [...]
+# initContainers adds extra init containers to the pod (run before main containers)
 initContainers: []
+
+# extraVolumeMounts adds additional volume mounts to the main container
+extraVolumeMounts: []
+
+# extraVolumes adds additional volumes to the pod
+extraVolumes: []

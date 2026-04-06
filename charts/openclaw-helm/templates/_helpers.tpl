@@ -47,3 +47,19 @@ Selector labels
 app.kubernetes.io/name: {{ include "openclaw-helm.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
+
+{{/*
+Container image reference. Uses digest when set, otherwise tag.
+Digest without algorithm prefix (e.g. bare hex) gets sha256: auto-prepended.
+*/}}
+{{- define "openclaw-helm.image" -}}
+{{- $d := (.Values.image.digest | default "" | trim) -}}
+{{- if $d -}}
+{{- if not (contains ":" $d) -}}
+{{- $d = printf "sha256:%s" $d -}}
+{{- end -}}
+{{ .Values.image.repository }}@{{ $d }}
+{{- else -}}
+{{ .Values.image.repository }}:{{ .Values.image.tag }}
+{{- end -}}
+{{- end }}
